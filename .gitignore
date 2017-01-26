@@ -5,4 +5,6 @@
 /.vs
 /packages/System.ValueTuple.4.3.0
 /Route4MeSdk.FSharp/obj/*
+/Route4MeSdk.FSharp/bin/*
 *.cache
+/packages/*
