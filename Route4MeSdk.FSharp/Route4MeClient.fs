@@ -1,4 +1,3 @@
 ﻿namespace Route4MeSdk.FSharp
 
-type Route4MeClient (apiKey) =
-    class end
+open FSharp.Data

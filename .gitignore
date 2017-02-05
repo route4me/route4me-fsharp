@@ -8,3 +8,5 @@
 /Route4MeSdk.FSharp/bin/*
 *.cache
 /packages/*
+/Route4MeSdk.FSharp.Example/bin/*
+/Route4MeSdk.FSharp.Example/obj/*
