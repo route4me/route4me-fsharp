@@ -30,3 +30,45 @@ module JsonConverter =
             if value = null then FSharpValue.MakeUnion(cases.[0], [||])
             else FSharpValue.MakeUnion(cases.[1], [|value|])
 
+    type Boolean() =
+        inherit JsonConverter()
+    
+        override __.CanConvert(objectType) = 
+            objectType = typeof<bool> || objectType = typeof<Nullable<bool>>
+
+        override __.CanWrite 
+            with get() = false
+
+        override __.WriteJson(writer, value, serializer) =
+            raise <| new NotImplementedException()
+
+        override __.ReadJson(reader, objectType, existingValue, serializer) =
+            let value = reader.Value.ToString().ToLower().Trim();
+            match value with
+                | "true"
+                | "yes"
+                | "y"
+                | "1" -> box true
+                | _ -> box false
+
+    type ZerosIsoDateTime() =
+        inherit JsonConverter()
+
+        let zeroData = "0000-00-00"
+
+        override __.CanConvert(objectType) = 
+            objectType = typeof<DateTime> || objectType = typeof<Nullable<DateTime>>
+
+        override __.CanWrite 
+            with get() = false
+
+        override __.WriteJson(writer, value, serializer) =
+            raise <| new NotImplementedException()
+
+        override self.ReadJson(reader, objectType, existingValue, serializer) =
+            if reader.Value = null || reader.Value.ToString() = zeroData then 
+                if objectType = typeof<Nullable<DateTime>> then 
+                    new Nullable<DateTime>() :> _
+                else box DateTime.MinValue
+            else serializer.Deserialize(reader, objectType)
+

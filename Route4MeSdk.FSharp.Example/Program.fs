@@ -32,4 +32,7 @@ module Main =
         |> Result.andThen(fun user -> 
             RestApi.User.delete apiKey user.Id)
 
-    ignore (createResult, updateResult, deleteResult)
+    let getAllResult = 
+        RestApi.User.getAll apiKey
+
+    ignore (createResult, updateResult, deleteResult, getAllResult)

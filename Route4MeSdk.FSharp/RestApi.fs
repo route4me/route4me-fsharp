@@ -1,6 +1,7 @@
 ﻿namespace Route4MeSdk.FSharp
 
 open System
+open System.Collections.Generic
 open FSharp.Data
 open FSharpExt
 open Newtonsoft.Json
@@ -41,11 +42,6 @@ module RestApi =
             let order = segments @ [ "order.php" ]
             let status = segments @ [ "status.php" ]
 
-    [<CLIMutable>]
-    type ErrorResponse = {
-        [<JsonProperty("errors")>]
-        Errors : string [] }
-
     type ApiError = { 
         StatusCode : int
         Errors : string[] }
@@ -59,9 +55,17 @@ module RestApi =
                         Ok value
                     else 
                         {   StatusCode = response.StatusCode
-                            Errors = JsonConvert.DeserializeObject<ErrorResponse>(value).Errors }
+                            Errors = 
+                                let dict = JsonConvert.DeserializeObject<Dictionary<string, obj>>(value)
+                                let array = dict.["errors"] :?> JArray
+                                array.ToObject<string[]>()}
                         |> Error
-                | Binary _ -> raise <| new NotSupportedException()    
+                | Binary _ -> raise <| new NotSupportedException()   
+                
+        let getDefaultConverters() = [|
+            new JsonConverter.Option() :> JsonConverter
+            new JsonConverter.Boolean() :> JsonConverter 
+            |]
 
     [<JsonConverter(typeof<StringEnumConverter>)>]
     type DistanceUnit =
@@ -73,11 +77,27 @@ module RestApi =
           
     [<JsonConverter(typeof<StringEnumConverter>)>]
     type UserType = 
+        | [<EnumMember(Value = "PRIMARY_ACCOUNT")>]
+          PrimaryAccount = 0
+
+        | [<EnumMember(Value = "SUB_ACCOUNT_ADMIN")>]
+          SubAccountAdmin = 1
+
+        | [<EnumMember(Value = "SUB_ACCOUNT_REGIONAL_MANAGER")>]
+          SubAccountRegionalManager = 2
+
+        | [<EnumMember(Value = "SUB_ACCOUNT_PLANNER")>]
+          SubAccountPlanner = 3
+
+        | [<EnumMember(Value = "SUB_ACCOUNT_ANALYST")>]
+          SubAccountAnalyst = 4
+          
+
         | [<EnumMember(Value = "SUB_ACCOUNT_DRIVER")>]
-          SubAccountDriver = 0
+          SubAccountDriver = 10
 
         | [<EnumMember(Value = "SUB_ACCOUNT_DISPATCHER")>]
-          SubAccountDispatcher = 1
+          SubAccountDispatcher = 11
 
     [<CLIMutable>]
     type User = {
@@ -109,7 +129,7 @@ module RestApi =
         Password : string
         
         [<JsonProperty("date_of_birth")>]
-        DateOfBirth : DateTime option
+        DateOfBirth : string //DateTime option
         
         [<JsonProperty("timezone")>]
         TimeZone : string
@@ -136,7 +156,10 @@ module RestApi =
         HideVisitedAddresses : bool option
         
         [<JsonProperty("HIDE_NONFUTURE_ROUTES")>]
-        HideNonFutureAddresses : bool option             }
+        HideNonFutureAddresses : bool option             
+        
+        [<JsonExtensionData>]
+        Data : IDictionary<string, JToken> }
 
     module User =
         let get apiKey userId =
@@ -147,14 +170,28 @@ module RestApi =
             
             Http.Request(url, query = query, httpMethod = "GET", silentHttpErrors = true)
             |> convertResponse
-            |> Result.map(fun json -> JsonConvert.DeserializeObject<User>(json, new JsonConverter.Option()))
+            |> Result.map(fun json -> JsonConvert.DeserializeObject<User>(json, getDefaultConverters()))
+
+        let getAll apiKey =
+            let url = String.Join("/", Url.V4.user)
+            let query = [
+                ("api_key", apiKey)]
+            
+            Http.Request(url, query = query, httpMethod = "GET", silentHttpErrors = true)
+            |> convertResponse
+            //|> Result.map (fun json -> JObject.Parse(json))
+            |> Result.map(fun json -> 
+                let dict = JsonConvert.DeserializeObject<Dictionary<string,obj>>(json, getDefaultConverters())
+                let results = dict.["results"] :?> JArray
+                let itemsJson = results.ToString()
+                JsonConvert.DeserializeObject<User[]>(itemsJson, getDefaultConverters()))
 
         let create apiKey (user : User) =
             let url = String.Join("/", Url.V4.user)
             let query = [
                 ("api_key", apiKey)]
 
-            let json = JsonConvert.SerializeObject(user, new JsonConverter.Option())
+            let json = JsonConvert.SerializeObject(user, getDefaultConverters())
 
             Http.Request(url, query = query, httpMethod = "POST", silentHttpErrors = true, body = HttpRequestBody.TextRequest json)
             |> convertResponse
@@ -166,7 +203,7 @@ module RestApi =
                 ("api_key", apiKey)
                 ("member_id", user.Id.ToString())]
 
-            let json = JsonConvert.SerializeObject(user, new JsonConverter.Option())
+            let json = JsonConvert.SerializeObject(user, getDefaultConverters())
 
             Http.Request(url, query = query, httpMethod = "PUT", silentHttpErrors = true, body = HttpRequestBody.TextRequest json)
             |> convertResponse            
