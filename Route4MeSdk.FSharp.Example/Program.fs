@@ -16,13 +16,20 @@ module Main =
         |> Result.andThen(fun user -> 
             RestApi.User.create apiKey 
                 { user with 
-                    Id = Some 35353
+                    Id = 35353
                     Email = "mycustomemail@microsoft.com"
                     Password = "test213" })
+
+    let updateResult =
+        getResult
+        |> Result.andThen(fun user -> 
+            RestApi.User.update apiKey 
+                { user with 
+                    Email = "mycustomemail@microsoft.com" })
         
     let deleteResult =
         getResult
         |> Result.andThen(fun user -> 
-            RestApi.User.delete apiKey (user.Id |> Option.withDefault -1) )
+            RestApi.User.delete apiKey user.Id)
 
-    ignore deleteResult
+    ignore (createResult, updateResult, deleteResult)

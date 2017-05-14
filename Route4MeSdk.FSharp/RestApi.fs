@@ -6,6 +6,7 @@ open FSharpExt
 open Newtonsoft.Json
 open Newtonsoft.Json.Converters
 open System.Runtime.Serialization
+open Newtonsoft.Json.Linq
 
 module RestApi =
     let demoApiKey = "11111111111111111111111111111111"
@@ -81,7 +82,7 @@ module RestApi =
     [<CLIMutable>]
     type User = {
         [<JsonProperty("member_id")>]
-        Id : int option
+        Id : int
         
         [<JsonProperty("OWNER_MEMBER_ID")>]
         OwnerId : int option
@@ -138,22 +139,38 @@ module RestApi =
         HideNonFutureAddresses : bool option             }
 
     module User =
-        let get apiKey memberId =
+        let get apiKey userId =
             let url = String.Join("/", Url.V4.user)
-            let apiKeyQuery = ("api_key", apiKey)
-            let memberIdQuery = ("member_id", sprintf "%i" memberId)
+            let query = [
+                ("api_key", apiKey)
+                ("member_id", userId.ToString())]
             
-            Http.Request(url, query=[apiKeyQuery; memberIdQuery], httpMethod="GET", silentHttpErrors = true)
+            Http.Request(url, query = query, httpMethod = "GET", silentHttpErrors = true)
             |> convertResponse
             |> Result.map(fun json -> JsonConvert.DeserializeObject<User>(json, new JsonConverter.Option()))
 
-        let create apiKey (user:User) =
+        let create apiKey (user : User) =
             let url = String.Join("/", Url.V4.user)
-            let apiKeyQuery = ("api_key", apiKey)
+            let query = [
+                ("api_key", apiKey)]
+
             let json = JsonConvert.SerializeObject(user, new JsonConverter.Option())
 
-            Http.Request(url, query=[apiKeyQuery], httpMethod="POST", silentHttpErrors = true, body = HttpRequestBody.TextRequest json)
+            Http.Request(url, query = query, httpMethod = "POST", silentHttpErrors = true, body = HttpRequestBody.TextRequest json)
             |> convertResponse
+            |> Result.map ignore
+
+        let update apiKey (user : User) =
+            let url = String.Join("/", Url.V4.user)
+            let query = [
+                ("api_key", apiKey)
+                ("member_id", user.Id.ToString())]
+
+            let json = JsonConvert.SerializeObject(user, new JsonConverter.Option())
+
+            Http.Request(url, query = query, httpMethod = "PUT", silentHttpErrors = true, body = HttpRequestBody.TextRequest json)
+            |> convertResponse            
+            |> Result.map ignore
 
         let delete apiKey (userId:int) =
             let url = String.Join("/", Url.V4.user)
@@ -162,4 +179,5 @@ module RestApi =
                 ("member_id", userId.ToString())]
             Http.Request(url, query = query, httpMethod = "DELETE", silentHttpErrors = true)
             |> convertResponse
+            |> Result.map ignore
             
