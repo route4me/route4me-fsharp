@@ -3,6 +3,9 @@
 open System
 open FSharp.Data
 open FSharpExt
+open Newtonsoft.Json
+open Newtonsoft.Json.Converters
+open System.Runtime.Serialization
 
 module RestApi =
     let demoApiKey = "11111111111111111111111111111111"
@@ -37,70 +40,126 @@ module RestApi =
             let order = segments @ [ "order.php" ]
             let status = segments @ [ "status.php" ]
 
+    [<CLIMutable>]
+    type ErrorResponse = {
+        [<JsonProperty("errors")>]
+        Errors : string [] }
+
+    type ApiError = { 
+        StatusCode : int
+        Errors : string[] }
+
+    [<AutoOpen>]
+    module private Helper = 
+        let convertResponse(response:HttpResponse) = 
+            match response.Body with 
+                | Text value -> 
+                    if response.StatusCode = 200 then   
+                        Ok value
+                    else 
+                        {   StatusCode = response.StatusCode
+                            Errors = JsonConvert.DeserializeObject<ErrorResponse>(value).Errors }
+                        |> Error
+                | Binary _ -> raise <| new NotSupportedException()    
+
+    [<JsonConverter(typeof<StringEnumConverter>)>]
     type DistanceUnit =
-        | Mile
-        | KiloMeter
+        | [<EnumMember(Value = "MI")>]
+          Mile = 0
 
-    type UserPreference = {
-        Unit : DistanceUnit
-        Language : string }
-
+        | [<EnumMember(Value = "KM")>]
+          KiloMeter = 1
+          
+    [<JsonConverter(typeof<StringEnumConverter>)>]
     type UserType = 
-        | SubAccountDriver
-        | SubAccountDispatcher
+        | [<EnumMember(Value = "SUB_ACCOUNT_DRIVER")>]
+          SubAccountDriver = 0
 
+        | [<EnumMember(Value = "SUB_ACCOUNT_DISPATCHER")>]
+          SubAccountDispatcher = 1
+
+    [<CLIMutable>]
     type User = {
-        Id : int
+        [<JsonProperty("member_id")>]
+        Id : int option
+        
+        [<JsonProperty("OWNER_MEMBER_ID")>]
         OwnerId : int option
+        
+        [<JsonProperty("member_type")>]
         Type : UserType
+        
+        [<JsonProperty("member_first_name")>]
         FirstName : string
+        
+        [<JsonProperty("member_last_name")>]
         LastName : string
+        
+        [<JsonProperty("member_email")>]
         Email : string 
+        
+        [<JsonProperty("member_phone")>]
         Phone : string
+
+        [<JsonProperty("READONLY_USER")>]
+        ReadOnly : bool option
+
+        [<JsonProperty("member_password")>]
+        Password : string
+        
+        [<JsonProperty("date_of_birth")>]
         DateOfBirth : DateTime option
-        Preference : UserPreference 
+        
+        [<JsonProperty("timezone")>]
         TimeZone : string
-        ZipCode : string }
+        
+        [<JsonProperty("member_zipcode")>]
+        ZipCode : string    
+        
+        [<JsonProperty("preferred_language")>]
+        PreferedLanguage : string
+
+        [<JsonProperty("preferred_units")>]
+        PreferedUnit : DistanceUnit option
+
+        [<JsonProperty("SHOW_ALL_DRIVERS")>]
+        ShowAllDrivers : bool option
+        
+        [<JsonProperty("SHOW_ALL_VEHICLES")>]
+        ShowAllVehicles : bool option
+        
+        [<JsonProperty("HIDE_ROUTED_ADDRESSES")>]
+        HideRoutedAddresses : bool option
+        
+        [<JsonProperty("HIDE_VISITED_ADDRESSES")>]
+        HideVisitedAddresses : bool option
+        
+        [<JsonProperty("HIDE_NONFUTURE_ROUTES")>]
+        HideNonFutureAddresses : bool option             }
 
     module User =
-        type GetResponse = JsonProvider<"JsonData/GetUserResponse.json">
-        type CreateRequest = JsonProvider<"JsonData/CreateUserRequest.json">
-
         let get apiKey memberId =
             let url = String.Join("/", Url.V4.user)
             let apiKeyQuery = ("api_key", apiKey)
             let memberIdQuery = ("member_id", sprintf "%i" memberId)
-            let response = Http.Request(url, query=[apiKeyQuery; memberIdQuery], httpMethod="GET")
             
-            if response.StatusCode = 200 then 
-                match response.Body with 
-                | Text value -> 
-                    let json = GetResponse.Parse(value)
-                    let instance = {
-                        Id = json.MemberId
-                        OwnerId = json.OwnerMemberId |> Option.ofObj |> Option.andThen(Int32.TryParse >> Option.ofBoolAndValue)
-                        Type = UserType.SubAccountDriver //TODO: Match on response field
-                        FirstName = json.MemberFirstName
-                        LastName = json.MemberLastName
-                        Email = json.MemberEmail
-                        Phone = json.MemberPhone
-                        DateOfBirth = None
-                        Preference = { 
-                            Unit = if json.PreferredUnits = "MI" then DistanceUnit.Mile else DistanceUnit.KiloMeter
-                            Language = json.PreferredLanguage }
-                        TimeZone = json.Timezone
-                        ZipCode = json.MemberZipcode }
-                    Ok instance
-                | Binary _ -> raise <| new NotSupportedException()
-            else Error <| response.StatusCode
+            Http.Request(url, query=[apiKeyQuery; memberIdQuery], httpMethod="GET", silentHttpErrors = true)
+            |> convertResponse
+            |> Result.map(fun json -> JsonConvert.DeserializeObject<User>(json, new JsonConverter.Option()))
 
-        let create apiKey (firstName, lastName, dateOfBirth, password, email, phone, zipCode) =
+        let create apiKey (user:User) =
             let url = String.Join("/", Url.V4.user)
             let apiKeyQuery = ("api_key", apiKey)
-            let request = 
-                new CreateRequest.Root(
-                    false, phone, zipCode, 0, email, false, false, "",dateOfBirth, 
-                    firstName, password, false, lastName, true, true)
-            //let requestJson = CreateRequest. request.
-            //let response = Http.Request(url, query=[apiKeyQuery], httpMethod="POST")
-            ()
+            let json = JsonConvert.SerializeObject(user, new JsonConverter.Option())
+
+            Http.Request(url, query=[apiKeyQuery], httpMethod="POST", silentHttpErrors = true, body = HttpRequestBody.TextRequest json)
+            |> convertResponse
+
+        let delete apiKey (userId:int) =
+            let url = String.Join("/", Url.V4.user)
+            let query = [
+                ("api_key", apiKey)
+                ("member_id", userId.ToString())]
+            Http.Request(url, query = query, httpMethod = "DELETE", silentHttpErrors = true)
+            |> convertResponse
+            

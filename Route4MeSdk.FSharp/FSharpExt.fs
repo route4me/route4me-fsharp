@@ -35,7 +35,7 @@ module Option =
     let inline andThen f option = option |> Option.bind (f)
     let inline withDefault def (option : Option<'Value>) = option |> substitute (always def) id
 
-    let inline ofBoolAndValue(success : bool, value) =
+    let inline ofPair(success : bool, value) =
         if success then Some value
         else None
         
