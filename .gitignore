@@ -10,3 +10,5 @@
 /packages/*
 /Route4MeSdk.FSharp.Example/bin/*
 /Route4MeSdk.FSharp.Example/obj/*
+/Route4MeSdk.FSharp.Tests/bin/*
+/Route4MeSdk.FSharp.Tests/obj/*

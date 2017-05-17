@@ -55,8 +55,8 @@ module Result =
         | Ok v -> forOk v
         | Error e -> forError e
     
-    let inline isOk result = result |> substitute (always false) (always true)
-    let inline isError result = result |> substitute (always true) (always false)
+    let inline isOk result = result |> substitute (always' false) (always' true)
+    let inline isError result = result |> substitute (always' true) (always' false)
     let inline asOk result = result |> substitute (always' None) Some
     let inline asError result = result |> substitute Some (always' None)
     

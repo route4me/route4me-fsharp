@@ -76,7 +76,7 @@ module RestApi =
           KiloMeter = 1
           
     [<JsonConverter(typeof<StringEnumConverter>)>]
-    type UserType = 
+    type MemberType = 
         | [<EnumMember(Value = "PRIMARY_ACCOUNT")>]
           PrimaryAccount = 0
 
@@ -86,29 +86,34 @@ module RestApi =
         | [<EnumMember(Value = "SUB_ACCOUNT_REGIONAL_MANAGER")>]
           SubAccountRegionalManager = 2
 
-        | [<EnumMember(Value = "SUB_ACCOUNT_PLANNER")>]
-          SubAccountPlanner = 3
+        | [<EnumMember(Value = "SUB_ACCOUNT_DISPATCHER")>]
+          SubAccountDispatcher = 3
 
-        | [<EnumMember(Value = "SUB_ACCOUNT_ANALYST")>]
-          SubAccountAnalyst = 4
-          
+        | [<EnumMember(Value = "SUB_ACCOUNT_PLANNER")>]
+          SubAccountPlanner = 4
 
         | [<EnumMember(Value = "SUB_ACCOUNT_DRIVER")>]
-          SubAccountDriver = 10
+          SubAccountDriver = 5
 
-        | [<EnumMember(Value = "SUB_ACCOUNT_DISPATCHER")>]
-          SubAccountDispatcher = 11
+        | [<EnumMember(Value = "SUB_ACCOUNT_ANALYST")>]
+          SubAccountAnalyst = 6
 
+        | [<EnumMember(Value = "SUB_ACCOUNT_VENDOR")>]
+          SubAccountVendor = 7
+
+        | [<EnumMember(Value = "SUB_ACCOUNT_CUSTOMER_SERVICE")>]
+          SubAccountCustomerService = 8
+          
     [<CLIMutable>]
-    type User = {
+    type Member = {
         [<JsonProperty("member_id")>]
-        Id : int
+        Id : int option
         
         [<JsonProperty("OWNER_MEMBER_ID")>]
         OwnerId : int option
         
         [<JsonProperty("member_type")>]
-        Type : UserType
+        Type : MemberType
         
         [<JsonProperty("member_first_name")>]
         FirstName : string
@@ -156,21 +161,18 @@ module RestApi =
         HideVisitedAddresses : bool option
         
         [<JsonProperty("HIDE_NONFUTURE_ROUTES")>]
-        HideNonFutureAddresses : bool option             
-        
-        [<JsonExtensionData>]
-        Data : IDictionary<string, JToken> }
+        HideNonFutureAddresses : bool option }
 
-    module User =
-        let get apiKey userId =
+    module Member =
+        let get apiKey memberId =
             let url = String.Join("/", Url.V4.user)
             let query = [
                 ("api_key", apiKey)
-                ("member_id", userId.ToString())]
+                ("member_id", memberId.ToString())]
             
             Http.Request(url, query = query, httpMethod = "GET", silentHttpErrors = true)
             |> convertResponse
-            |> Result.map(fun json -> JsonConvert.DeserializeObject<User>(json, getDefaultConverters()))
+            |> Result.map(fun json -> JsonConvert.DeserializeObject<Member>(json, getDefaultConverters()))
 
         let getAll apiKey =
             let url = String.Join("/", Url.V4.user)
@@ -179,42 +181,52 @@ module RestApi =
             
             Http.Request(url, query = query, httpMethod = "GET", silentHttpErrors = true)
             |> convertResponse
-            //|> Result.map (fun json -> JObject.Parse(json))
             |> Result.map(fun json -> 
                 let dict = JsonConvert.DeserializeObject<Dictionary<string,obj>>(json, getDefaultConverters())
                 let results = dict.["results"] :?> JArray
                 let itemsJson = results.ToString()
-                JsonConvert.DeserializeObject<User[]>(itemsJson, getDefaultConverters()))
+                JsonConvert.DeserializeObject<Member[]>(itemsJson, getDefaultConverters()))
 
-        let create apiKey (user : User) =
+        let create apiKey (member' : Member) =
             let url = String.Join("/", Url.V4.user)
             let query = [
                 ("api_key", apiKey)]
 
-            let json = JsonConvert.SerializeObject(user, getDefaultConverters())
+            let json = JsonConvert.SerializeObject(member', getDefaultConverters())
 
             Http.Request(url, query = query, httpMethod = "POST", silentHttpErrors = true, body = HttpRequestBody.TextRequest json)
             |> convertResponse
-            |> Result.map ignore
+            |> Result.map(fun json -> JsonConvert.DeserializeObject<Member>(json, getDefaultConverters()))
 
-        let update apiKey (user : User) =
+        let update apiKey (member' : Member) =
             let url = String.Join("/", Url.V4.user)
             let query = [
                 ("api_key", apiKey)
-                ("member_id", user.Id.ToString())]
+                ("member_id", member'.Id.ToString())]
 
-            let json = JsonConvert.SerializeObject(user, getDefaultConverters())
+            let json = JsonConvert.SerializeObject(member', getDefaultConverters())
 
             Http.Request(url, query = query, httpMethod = "PUT", silentHttpErrors = true, body = HttpRequestBody.TextRequest json)
             |> convertResponse            
-            |> Result.map ignore
+            |> Result.map(fun json -> JsonConvert.DeserializeObject<Member>(json, getDefaultConverters()))
 
-        let delete apiKey (userId:int) =
+        let delete apiKey (memberId:int) =
             let url = String.Join("/", Url.V4.user)
             let query = [
                 ("api_key", apiKey)
-                ("member_id", userId.ToString())]
+                ("member_id", memberId.ToString())]
             Http.Request(url, query = query, httpMethod = "DELETE", silentHttpErrors = true)
             |> convertResponse
             |> Result.map ignore
+
+        // Note: Currently returns Html response despite the format = "json"
+        let authenticate apiKey email password =
+            let url = String.Join("/", Url.actionAuthenticate)
+            let query = [
+                ("api_key", apiKey)
+                ("format", "xml")
+                ("strEmail", email)
+                ("strPassword", password)]
             
+            Http.Request(url, query = query, httpMethod = "GET", silentHttpErrors = true)
+            |> convertResponse
