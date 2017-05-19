@@ -57,13 +57,13 @@
     <Compile Include="AssemblyInfo.fs" />
     <Compile Include="FSharpExt.fs" />
     <Compile Include="JsonConverter.fs" />
-    <Compile Include="RestApi.fs" />
     <Compile Include="RestApi\Error.fs" />
     <Compile Include="RestApi\Api.fs" />
     <Compile Include="RestApi\Url.fs" />
     <Compile Include="RestApi\Enums.fs" />
     <Compile Include="RestApi\MemberConfig.fs" />
     <Compile Include="RestApi\Member.fs" />
+    <Compile Include="RestApi\Vehicle.fs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="FSharp.Data">

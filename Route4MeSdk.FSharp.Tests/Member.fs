@@ -45,7 +45,7 @@ module Member =
                     |> Result.andThen(fun m -> 
                         Member.Update({ m with FirstName = Data.FirstName.random() }))
 
-                Expect.equal (updateResult |> Result.isOk) true "Get should be Ok"
+                Expect.equal (updateResult |> Result.isOk) true "Update should be Ok"
 
                 let deleteResult = 
                     createResult

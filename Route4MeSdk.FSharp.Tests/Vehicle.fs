@@ -2,14 +2,13 @@
 
 open Expecto
 open FSharpExt
-open Route4MeSdk.FSharp.RestApi
+open Route4MeSdk.FSharp
 
 module Vehicle =
     let tests =
         testList "Vehicle" [
             test "Get" {
-                //let getResult = Vehicle.get demoApiKey null (Some 12) None 
+                let getResult = Vehicle.Get()
 
-                //ignore getResult
-                ()
+                Expect.equal (getResult |> Result.isOk) true "Get should be Ok"
             } ]
