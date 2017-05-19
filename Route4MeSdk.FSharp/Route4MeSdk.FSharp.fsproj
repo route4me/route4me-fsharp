@@ -9,8 +9,8 @@
     <OutputType>Library</OutputType>
     <RootNamespace>Route4MeSdk.FSharp</RootNamespace>
     <AssemblyName>Route4MeSdk.FSharp</AssemblyName>
-    <TargetFrameworkVersion>v4.5.2</TargetFrameworkVersion>
-    <TargetFSharpCoreVersion>4.4.0.0</TargetFSharpCoreVersion>
+    <TargetFrameworkVersion>v4.6.2</TargetFrameworkVersion>
+    <TargetFSharpCoreVersion>4.4.1.0</TargetFSharpCoreVersion>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
     <Name>Route4MeSdk.FSharp</Name>
     <TargetFrameworkProfile />
@@ -56,10 +56,14 @@
     <Content Include="packages.config" />
     <Compile Include="AssemblyInfo.fs" />
     <Compile Include="FSharpExt.fs" />
-    <Compile Include="Utilities.fs" />
     <Compile Include="JsonConverter.fs" />
     <Compile Include="RestApi.fs" />
-    <Compile Include="Route4MeClient.fs" />
+    <Compile Include="RestApi\Error.fs" />
+    <Compile Include="RestApi\Api.fs" />
+    <Compile Include="RestApi\Url.fs" />
+    <Compile Include="RestApi\Enums.fs" />
+    <Compile Include="RestApi\MemberConfig.fs" />
+    <Compile Include="RestApi\Member.fs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="FSharp.Data">

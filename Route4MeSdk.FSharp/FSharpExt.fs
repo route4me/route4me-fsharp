@@ -11,8 +11,9 @@ module Prelude =
     let inline always' value = fun _ -> value
 
     /// Disposes of any #IDisposable without first having to cast to IDisposable.
-    let inline dispose (disposable : #System.IDisposable) =
-        disposable.Dispose()
+    let inline dispose (resource : #System.IDisposable) =
+        if isNull <| box resource then ()
+        else resource.Dispose()
 
     /// Applies value to the isValid guard function, calling the supplied
     /// pass function if the outcome is true otherwise the fail function.
@@ -32,25 +33,64 @@ module Option =
         | None -> forNone()
         | Some value -> forSome value
     
-    let inline andThen f option = option |> Option.bind (f)
-    let inline withDefault def (option : Option<'Value>) = option |> substitute (always def) id
+    let inline andThen continuation option = option |> Option.bind (continuation)
 
     let inline ofPair(success : bool, value) =
         if success then Some value
         else None
+
+[<AutoOpen>]
+module OptionPervasive = 
+    type OptionBuilder() =
+        member this.Return(value) = Some value
+
+        member this.ReturnFrom(m: 'T option) = m
+
+        member this.Bind(m, f) = Option.bind f m
+
+        member this.Zero() = None
+
+        member this.Combine(m, f) = Option.bind f m
+
+        member this.Delay(f: unit -> _) = f
+
+        member this.Run(f) = f()
+
+        member this.TryWith(m, handle) =
+            try this.ReturnFrom(m)
+            with e -> handle e
+
+        member this.TryFinally(m, compensate) =
+            try this.ReturnFrom(m)
+            finally compensate()
+
+        member this.Using(resource:#IDisposable, body) =
+            this.TryFinally(body resource, fun () -> dispose resource)
+
+        member this.While(guard, f) =
+            if not (guard()) then Some() else
+            do f() |> ignore
+
+            this.While(guard, f)
+
+        member this.For(sequence:seq<_>, body) =
+            this.Using(sequence.GetEnumerator(), 
+                fun enum -> this.While(enum.MoveNext, this.Delay(fun () -> body enum.Current)))
+
+    let option = OptionBuilder()
         
+module String =
+    let inline join seperator (values:seq<_>) = 
+        String.Join(seperator, values)
+
 [<AutoOpen>]
 module StringPervasive =
     let inline (|Blank|Present|) value =
         if String.IsNullOrWhiteSpace value then Blank
         else Present value
 
-type Result<'Ok, 'Error> = 
-    | Ok of OkValue : 'Ok
-    | Error of ErrorValue : 'Error
-
 module Result = 
-    let inline substitute (forError : 'Error -> 'Outcome) (forOk : 'Value -> 'Outcome) result = 
+    let inline substitute (forError : 'TError -> 'Outcome) (forOk : 'T -> 'Outcome) result = 
         match result with
         | Ok v -> forOk v
         | Error e -> forError e
@@ -59,24 +99,24 @@ module Result =
     let inline isError result = result |> substitute (always' true) (always' false)
     let inline asOk result = result |> substitute (always' None) Some
     let inline asError result = result |> substitute Some (always' None)
+
+    let inline orElse (otherResult : Result<'T,'TErrorB>) (result : Result<'T,'TErrorA>) = 
+        result |> substitute (always' otherResult) Ok
+
+    let inline orElseWith (resultThunk : _ -> Result<'T,'TErrorB>) (result : Result<'T,'TErrorA>) = 
+        result |> substitute resultThunk Ok
     
-    let inline bind result f = result |> substitute Error f
-    let inline map f result = result |> substitute Error (f >> Ok)
-    let inline formatError f result = result |> substitute (f >> Error) Ok
-    let inline andThen f result = result |> substitute Error f
+    let inline andThen continuation result = result |> substitute Error continuation
     
+    let inline ofOptionWith errorThunk option =
+        option
+        |> Option.substitute (errorThunk >> Error) Ok
+
     let inline ofOption error option = 
-        match option with
-        | None -> Error error
-        | Some v -> Ok v
+        option |> ofOptionWith (always error)
     
     let inline toOption result = result |> asOk
 
-    let inline iter f result = result |> substitute (always' ()) f
-    let inline sink f result = result |> substitute f (always' ())
+    let inline iter action result = result |> substitute (always' ()) action
+    let inline sink action result = result |> substitute action (always' ())
     let inline count result = result |> substitute (always' 0) (always' 1)
-    
-    let inline filter predicate result = 
-        result |> substitute (always' None) (fun v -> 
-                        if predicate v then Some v
-                        else None)
