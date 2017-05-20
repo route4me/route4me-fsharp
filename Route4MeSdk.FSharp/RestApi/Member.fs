@@ -70,11 +70,11 @@ type Member = {
         static member Get(memberId:int, ?apiKey) =
             let query = [("member_id", memberId.ToString())]
             
-            Api.Get(Url.V4.user, query, apiKey)
+            Api.Get(Url.V4.user, [], query, apiKey)
             |> Result.map(Api.Deserialize<Member>)
 
         static member GetAll(?apiKey) =
-            Api.Get(Url.V4.user, [], apiKey)
+            Api.Get(Url.V4.user, [], [], apiKey)
             |> Result.map(fun json -> 
                 let dict = Api.Deserialize<Dictionary<string,obj>>(json)
                 let results = dict.["results"] :?> JArray
@@ -82,32 +82,42 @@ type Member = {
                 Api.Deserialize<Member[]>(results.ToString()))
 
         static member Create(member' : Member, ?apiKey) =
-            Api.Post(Url.V4.user, [], apiKey, member')
+            Api.Post(Url.V4.user, [], [], apiKey, member')
             |> Result.map Api.Deserialize<Member>
 
-        static member Update(member' : Member, ?apiKey) =
-            let query = [("member_id", member'.Id.ToString())]
-
-            Api.Put(Url.V4.user, query, apiKey, member')
-            |> Result.map Api.Deserialize<Member>
-
-        static member Delete(memberId:int, ?apiKey) =
-            let query = [("member_id", memberId.ToString())]
-            Api.Delete(Url.V4.user, query, apiKey)
-
-        member self.Delete() =
-            self.Id
+        static member Update(member', ?apiKey) =
+            member'.Id
             |> Result.ofOption(ValidationError("Member Id must be supplied."))
-            |> Result.andThen(fun id -> Member.Delete(id))
+            |> Result.andThen(fun id ->
+                Api.Put(Url.V4.user, [], [], apiKey, member')
+                |> Result.map Api.Deserialize<Member>)
+
+        member self.Update(?apiKey) =
+            match apiKey with
+            | None -> Member.Update(self)
+            | Some ak -> Member.Update(self, ak)
+
+        static member Delete(member', ?apiKey) =
+            member'.Id
+            |> Result.ofOption(ValidationError("Member Id must be supplied."))
+            |> Result.andThen(fun id ->
+                let request = [("member_id", id)] |> dict
+                Api.Delete(Url.V4.user, [], [], apiKey, request))
+
+        member self.Delete(?apiKey) =
+            match apiKey with
+            | None -> Member.Delete(self)
+            | Some ak -> Member.Delete(self, ak)
 
         // Note: Currently returns Html response despite the format = "json"
         static member Authenticate(email, password, ?apiKey) =
-            let query = [
-                ("format", "json")
-                ("strEmail", email)
-                ("strPassword", password)]
+            let request = 
+                [("format", "json")
+                 ("strEmail", email)
+                 ("strPassword", password)]
+                |> dict
             
-            Api.Post(Url.actionAuthenticate, query, apiKey)
+            Api.Post(Url.actionAuthenticate, [], [], apiKey, request)
 
         member self.SetConfig (key, value, ?apiKey) = 
             self.Id
@@ -118,7 +128,7 @@ type Member = {
                       Key = key
                       Value = value }
 
-                Api.Put(Url.V4.configSettings, [], apiKey, config))
+                Api.Put(Url.V4.configSettings, [], [], apiKey, config))
 
         member self.GetConfig(?apiKey) =
             self.Id
@@ -126,7 +136,7 @@ type Member = {
             |> Result.andThen(fun id ->
                 let query = [("member_id", id.ToString())]
             
-                Api.Get(Url.V4.configSettings, [], apiKey)
+                Api.Get(Url.V4.configSettings, [], [], apiKey)
                 |> Result.map(fun json -> 
                     let dict = Api.Deserialize<Dictionary<string,obj>>(json)
                     let data = dict.["data"] :?> JArray
@@ -139,4 +149,31 @@ type Member = {
                 let query = [("member_id", id.ToString())]
                 let value = [("config_key", key)] |> dict
 
-                Api.Delete(Url.V4.configSettings, query, apiKey, value))
+                Api.Delete(Url.V4.configSettings, [], query, apiKey, value))
+
+        static member Register(firstName, lastName, email, password, deviceType : DeviceType, industry, plan, ?apiKey) =
+            let query = 
+                [("strFirstName", firstName)
+                 ("strLastName", lastName)
+                 ("strEmail",email)
+                 ("format", "json")
+                 ("chkTerms", "1")
+                 ("device_type", deviceType.ToString())
+                 ("strPassword_1", password)
+                 ("strPassword_2", password)
+                 ("strIndustry", industry)
+                 ("plan", plan)]
+                |> dict
+
+            Api.Post(Url.actionRegister, [], [], apiKey, query)
+
+        member self.ValidateSession(sessionId, ?apiKey) =
+            self.Id
+            |> Result.ofOption(ValidationError("Member Id must be supplied."))
+            |> Result.andThen(fun id ->
+                let request = 
+                    [("member_id", id.ToString())
+                     ("format", "json")
+                     ("session_guid", sessionId)]
+                    |> dict
+                Api.Post(Url.validateSession, [], [], apiKey, request))

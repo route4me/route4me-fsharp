@@ -77,5 +77,5 @@ type Vehicle = {
 
     with
         static member Get(?apiKey) =
-            Api.Get(Url.V1.viewVehicles, [], apiKey)
+            Api.Get(Url.V1.viewVehicles, [], [], apiKey)
             |> Result.map Api.Deserialize<Vehicle[]>

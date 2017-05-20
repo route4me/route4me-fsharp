@@ -13,7 +13,7 @@ module Member =
             OwnerId = None
             FirstName = firstName
             LastName = lastName
-            Email = Data.Email.create (sprintf "%s.%s" firstName lastName)
+            Email = (sprintf "%s.%s@gmail.com" firstName lastName).ToLower()
             Phone = Data.Phone.random()
             Password = Data.Password.random 10
             ReadOnly = None 
@@ -53,10 +53,36 @@ module Member =
                 
                 Expect.equal (deleteResult |> Result.isOk) true "Delete should be Ok"
             }
+
+            test "Register" {
+                let firstName = Data.FirstName.random()
+                let lastName = Data.LastName.random()
+                let email = Data.Email.create(sprintf "%s.%s" firstName lastName)
+                let password = Data.Password.random 10
+                let industry = ""
+                let plan = ""
+                let regResult = 
+                    Member.Register(firstName, lastName, email, password, DeviceType.Web, industry, plan)
+                Expect.equal (regResult |> Result.isOk) true "Register should be Ok"
+                }
             
             test "Authenticate" {
-                let authResult = Member.Authenticate("wade.ochoa@mailwire.com", "=CDMFY2JhT")
-                ()
+                let createResult = Member.Create(member')
+                Expect.equal (createResult |> Result.isOk) true "Create should be Ok"
+
+                createResult 
+                |> Result.iter(fun _ ->
+                    let authResult = Member.Authenticate(member'.Email, member'.Password)
+                    ())
+                }
+
+            test "ValidateSession" {
+                let result = Member.Get(495660)
+
+                result 
+                |> Result.iter(fun m ->
+                    let valResult = m.ValidateSession("")
+                    Expect.equal (valResult |> Result.isOk) true "Should be Ok")
                 }
 
             test "Config - Set,Get & Delete" {

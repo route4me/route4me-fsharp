@@ -40,3 +40,22 @@ type MemberType =
 
     | [<EnumMember(Value = "SUB_ACCOUNT_CUSTOMER_SERVICE")>]
         SubAccountCustomerService = 8
+
+type DeviceType =
+    | [<EnumMember(Value = "Web")>]
+        Web = 0
+
+    | [<EnumMember(Value = "IPhone")>]
+        IPhone = 1
+
+    | [<EnumMember(Value = "IPad")>]
+        IPad = 2
+
+    | [<EnumMember(Value = "AndroidPhone")>]
+        AndroidPhone = 3
+
+    | [<EnumMember(Value = "AndroidTablet")>]
+        AndroidTablet = 4
+
+    | [<EnumMember(Value = "UnknownDevice")>]
+        UnknownDevice = 99

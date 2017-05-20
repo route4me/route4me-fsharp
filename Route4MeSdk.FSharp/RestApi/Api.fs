@@ -1,6 +1,7 @@
 ﻿namespace Route4MeSdk.FSharp
 
 open System
+open System.Web
 open FSharp.Data
 open Newtonsoft.Json
 open Newtonsoft.Json.Linq
@@ -22,9 +23,12 @@ type Api() =
                     Ok value
                 else 
                     let errors = 
-                        let dict = JsonConvert.DeserializeObject<Dictionary<string, obj>>(value)
-                        let array = dict.["errors"] :?> JArray
-                        array.ToObject<string[]>()
+                        try
+                            let dict = JsonConvert.DeserializeObject<Dictionary<string, obj>>(value)
+                            let array = dict.["errors"] :?> JArray
+                            array.ToObject<string[]>()
+                        with _ ->
+                            Array.empty
 
                     Error <| ApiError(response.StatusCode, errors)
             | Binary _ -> raise <| new NotSupportedException()   
@@ -34,37 +38,43 @@ type Api() =
         | Some v -> ("api_key", v) :: query
         | None -> ("api_key", demoApiKey) :: query
 
-    static member Action(url, query, method, apiKey) = 
+    static member Action(url, headers, query, method, apiKey) = 
         let ammendedQuery = addApiKey query apiKey
-        Http.Request(String.join "/" url, query = ammendedQuery, httpMethod = method, silentHttpErrors = true)
+        Http.Request(String.join "/" url, headers = headers, query = ammendedQuery, 
+                     httpMethod = method, silentHttpErrors = true)
         |> convertResponse
 
-    static member Action(url, query, method, apiKey, value) =
+    static member Action(url, headers, query, method, apiKey, value) =
         let ammendedQuery = addApiKey query apiKey
-        let json = JsonConvert.SerializeObject(value, getConverters())
-        Http.Request(String.join "/" url, query = ammendedQuery, httpMethod = method, silentHttpErrors = true, body = HttpRequestBody.TextRequest json)
+        let headers = [("format", "json")]
+        let json = 
+            JsonConvert.SerializeObject(value, getConverters())
+            |> HttpRequestBody.TextRequest
+
+        Http.Request(String.join "/" url, headers = headers, query = ammendedQuery, 
+                     httpMethod = method, silentHttpErrors = true, body = json)
         |> convertResponse
 
-    static member Get(url, query, apiKey) = 
-        Api.Action(url, query, "GET", apiKey)
+    static member Get(url, headers, query, apiKey) = 
+        Api.Action(url, headers, query, "GET", apiKey)
 
-    static member Post(url, query, apiKey) = 
-        Api.Action(url, query, "POST", apiKey)
+    static member Post(url, headers, query, apiKey) = 
+        Api.Action(url, headers, query, "POST", apiKey)
 
-    static member Post(url, query, apiKey, value) = 
-        Api.Action(url, query, "POST", apiKey, value)
+    static member Post(url, headers, query, apiKey, value) = 
+        Api.Action(url, headers, query, "POST", apiKey, value)
 
-    static member Put(url, query, apiKey) = 
-        Api.Action(url, query, "PUT", apiKey)
+    static member Put(url, headers, query, apiKey) = 
+        Api.Action(url, headers, query, "PUT", apiKey)
 
-    static member Put(url, query, apiKey, value) = 
-        Api.Action(url, query, "PUT", apiKey, value)
+    static member Put(url, headers, query, apiKey, value) = 
+        Api.Action(url, headers, query, "PUT", apiKey, value)
 
-    static member Delete(url, query, apiKey) = 
-        Api.Action(url, query, "DELETE", apiKey)
+    static member Delete(url, headers, query, apiKey) = 
+        Api.Action(url, headers, query, "DELETE", apiKey)
 
-    static member Delete(url, query, apiKey, value) = 
-        Api.Action(url, query, "DELETE", apiKey, value)
+    static member Delete(url, headers, query, apiKey, value) = 
+        Api.Action(url, headers, query, "DELETE", apiKey, value)
 
     static member Deserialize<'T>(json) =
         JsonConvert.DeserializeObject<'T>(json, getConverters())
