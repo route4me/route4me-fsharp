@@ -4,8 +4,6 @@ open System
 open FSharpExt
 
 module internal Url =
-    let inline build (values:string seq) = String.join "/" values
-
     let private host = [ "https://www.route4me.com" ]
 
     let route4me = host @ [ "route4me.php" ]

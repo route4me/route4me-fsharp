@@ -77,10 +77,5 @@ type Vehicle = {
 
     with
         static member Get(?apiKey) =
-            let url = Url.build Url.V1.viewVehicles
-            let query = [
-                ("api_key", defaultArg apiKey Api.demoApiKey)]
-
-            Http.Request(url, query = query, httpMethod = "GET", silentHttpErrors = true)
-            |> Api.convertResponse
-            |> Result.map(fun json -> JsonConvert.DeserializeObject<Vehicle[]>(json, Api.getConverters()))
+            Api.Get(Url.V1.viewVehicles, [], apiKey)
+            |> Result.map Api.Deserialize<Vehicle[]>

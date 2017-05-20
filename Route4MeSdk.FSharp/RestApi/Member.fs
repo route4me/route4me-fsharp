@@ -68,59 +68,32 @@ type Member = {
 
     with
         static member Get(memberId:int, ?apiKey) =
-            let url = Url.build Url.V4.user
-            let query = [
-                ("api_key", defaultArg apiKey Api.demoApiKey)
-                ("member_id", memberId.ToString())]
+            let query = [("member_id", memberId.ToString())]
             
-            Http.Request(url, query = query, httpMethod = "GET", silentHttpErrors = true)
-            |> Api.convertResponse
-            |> Result.map(fun json -> JsonConvert.DeserializeObject<Member>(json, Api.getConverters()))
+            Api.Get(Url.V4.user, query, apiKey)
+            |> Result.map(Api.Deserialize<Member>)
 
         static member GetAll(?apiKey) =
-            let url = Url.build Url.V4.user
-            let query = [
-                ("api_key", defaultArg apiKey Api.demoApiKey)]
-            
-            Http.Request(url, query = query, httpMethod = "GET", silentHttpErrors = true)
-            |> Api.convertResponse
+            Api.Get(Url.V4.user, [], apiKey)
             |> Result.map(fun json -> 
-                let dict = JsonConvert.DeserializeObject<Dictionary<string,obj>>(json, Api.getConverters())
+                let dict = Api.Deserialize<Dictionary<string,obj>>(json)
                 let results = dict.["results"] :?> JArray
                 let itemsJson = results.ToString()
-                JsonConvert.DeserializeObject<Member[]>(itemsJson, Api.getConverters()))
+                Api.Deserialize<Member[]>(results.ToString()))
 
         static member Create(member' : Member, ?apiKey) =
-            let url = Url.build Url.V4.user
-            let query = [
-                ("api_key", defaultArg apiKey Api.demoApiKey)]
-
-            let json = JsonConvert.SerializeObject(member', Api.getConverters())
-
-            Http.Request(url, query = query, httpMethod = "POST", silentHttpErrors = true, body = HttpRequestBody.TextRequest json)
-            |> Api.convertResponse
-            |> Result.map(fun json -> JsonConvert.DeserializeObject<Member>(json, Api.getConverters()))
+            Api.Post(Url.V4.user, [], apiKey, member')
+            |> Result.map Api.Deserialize<Member>
 
         static member Update(member' : Member, ?apiKey) =
-            let url = Url.build Url.V4.user
-            let query = [
-                ("api_key", defaultArg apiKey Api.demoApiKey)
-                ("member_id", member'.Id.ToString())]
+            let query = [("member_id", member'.Id.ToString())]
 
-            let json = JsonConvert.SerializeObject(member', Api.getConverters())
-
-            Http.Request(url, query = query, httpMethod = "PUT", silentHttpErrors = true, body = HttpRequestBody.TextRequest json)
-            |> Api.convertResponse            
-            |> Result.map(fun json -> JsonConvert.DeserializeObject<Member>(json, Api.getConverters()))
+            Api.Put(Url.V4.user, query, apiKey, member')
+            |> Result.map Api.Deserialize<Member>
 
         static member Delete(memberId:int, ?apiKey) =
-            let url = Url.build Url.V4.user
-            let query = [
-                ("api_key", defaultArg apiKey Api.demoApiKey)
-                ("member_id", memberId.ToString())]
-            Http.Request(url, query = query, httpMethod = "DELETE", silentHttpErrors = true)
-            |> Api.convertResponse
-            |> Result.map ignore
+            let query = [("member_id", memberId.ToString())]
+            Api.Delete(Url.V4.user, query, apiKey)
 
         member self.Delete() =
             self.Id
@@ -129,20 +102,14 @@ type Member = {
 
         // Note: Currently returns Html response despite the format = "json"
         static member Authenticate(email, password, ?apiKey) =
-            let url = Url.build Url.actionAuthenticate
             let query = [
-                ("api_key", defaultArg apiKey Api.demoApiKey)
                 ("format", "json")
                 ("strEmail", email)
                 ("strPassword", password)]
             
-            Http.Request(url, query = query, httpMethod = "POST", silentHttpErrors = true)
-            |> Api.convertResponse
+            Api.Post(Url.actionAuthenticate, query, apiKey)
 
         member self.SetConfig (key, value, ?apiKey) = 
-            let url = Url.build Url.V4.configSettings
-            let query = [("api_key", defaultArg apiKey Api.demoApiKey)]
-            
             self.Id
             |> Result.ofOption(ValidationError("Member Id must be supplied."))
             |> Result.andThen(fun id ->
@@ -151,43 +118,25 @@ type Member = {
                       Key = key
                       Value = value }
 
-                let json = JsonConvert.SerializeObject(config, Api.getConverters())
-                Http.Request(url, query = query, httpMethod = "PUT", silentHttpErrors = true, body = HttpRequestBody.TextRequest json)
-                |> Api.convertResponse)
+                Api.Put(Url.V4.configSettings, [], apiKey, config))
 
         member self.GetConfig(?apiKey) =
-            let url = Url.build Url.V4.configSettings
-
             self.Id
             |> Result.ofOption(ValidationError("Member Id must be supplied."))
             |> Result.andThen(fun id ->
-                let query = 
-                    [("api_key", defaultArg apiKey Api.demoApiKey)
-                     ("member_id", id.ToString())]
+                let query = [("member_id", id.ToString())]
             
-                Http.Request(url, query = query, httpMethod = "GET", silentHttpErrors = true)
-                |> Api.convertResponse
+                Api.Get(Url.V4.configSettings, [], apiKey)
                 |> Result.map(fun json -> 
-                    let converters = Api.getConverters()
-                    let dict = JsonConvert.DeserializeObject<Dictionary<string,obj>>(json, converters)
+                    let dict = Api.Deserialize<Dictionary<string,obj>>(json)
                     let data = dict.["data"] :?> JArray
-                    JsonConvert.DeserializeObject<MemberConfig[]>(data.ToString(), converters)))
+                    Api.Deserialize<MemberConfig[]>(data.ToString())))
 
         member self.DeleteConfig(key, ?apiKey) =
-            let url = Url.build Url.V4.configSettings
-
             self.Id
             |> Result.ofOption(ValidationError("Member Id must be supplied."))
             |> Result.andThen(fun id ->
-                let query = 
-                    [("api_key", defaultArg apiKey Api.demoApiKey)
-                     ("member_id", id.ToString())]
-                
-                let json = 
-                    [("config_key", key)] 
-                    |> dict
-                    |> JsonConvert.SerializeObject
-                    |> HttpRequestBody.TextRequest
+                let query = [("member_id", id.ToString())]
+                let value = [("config_key", key)] |> dict
 
-                Http.Request(url, query = query, httpMethod = "DELETE", silentHttpErrors = true, body = json)
-                |> Api.convertResponse)
+                Api.Delete(Url.V4.configSettings, query, apiKey, value))
