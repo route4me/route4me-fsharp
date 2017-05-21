@@ -65,6 +65,7 @@
     <Compile Include="Member.fs" />
     <Compile Include="Vehicle.fs" />
     <Compile Include="Territory.fs" />
+    <Compile Include="AvoidanceZone.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
   <ItemGroup>

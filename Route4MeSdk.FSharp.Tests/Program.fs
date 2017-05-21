@@ -7,6 +7,7 @@ let tests =
     [ Member.tests
       Vehicle.tests 
       Territory.tests
+      AvoidanceZone.tests
       ]
     |> testList "Route4MeSdk.FSharp.Tests"
 

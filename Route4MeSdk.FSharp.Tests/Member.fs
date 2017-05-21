@@ -36,20 +36,20 @@ module Member =
 
                 let getResult = 
                     createResult
-                    |> Result.andThen(fun m -> Member.Get(m.Id.Value))
+                    |> Result.bind(fun m -> Member.Get(m.Id.Value))
 
                 Expect.equal (getResult |> Result.isOk) true "Get should be Ok"
 
                 let updateResult = 
                     createResult
-                    |> Result.andThen(fun m -> 
+                    |> Result.bind(fun m -> 
                         Member.Update({ m with FirstName = Data.FirstName.random() }))
 
                 Expect.equal (updateResult |> Result.isOk) true "Update should be Ok"
 
                 let deleteResult = 
                     createResult
-                    |> Result.andThen(fun m -> m.Delete())
+                    |> Result.bind(fun m -> m.Delete())
                 
                 Expect.equal (deleteResult |> Result.isOk) true "Delete should be Ok"
             }
