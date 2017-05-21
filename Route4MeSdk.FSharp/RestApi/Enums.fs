@@ -59,3 +59,73 @@ type DeviceType =
 
     | [<EnumMember(Value = "UnknownDevice")>]
         UnknownDevice = 99
+
+type ActivityType = 
+    | [<EnumMember(Value = "delete-destination")>]
+        DeleteDestination = 0
+
+    | [<EnumMember(Value = "insert-destination")>]
+        InsertDestination = 1
+    
+    | [<EnumMember(Value = "mark-destination-departed")>]
+        MarkDestinationDeparted = 2
+    
+    | [<EnumMember(Value = "mark-destination-visited")>]
+        MarkDestinationVisited = 3
+    
+    | [<EnumMember(Value = "member-created")>]
+        MemberCreated = 4
+    
+    | [<EnumMember(Value = "member-deleted")>]
+        MemberDeleted = 5
+    
+    | [<EnumMember(Value = "member-modified")>]
+        MemberModified = 6
+    
+    | [<EnumMember(Value = "move-destination")>]
+        MoveDestination = 7
+    
+    | [<EnumMember(Value = "note-insert")>]
+        NoteInsert = 8
+    
+    | [<EnumMember(Value = "route-delete")>]
+        RouteDelete = 9
+    
+    | [<EnumMember(Value = "route-optimized")>]
+        RouteOptimized = 10
+    
+    | [<EnumMember(Value = "route-owner-changed")>]
+        RouteOwnerChanged = 11
+    
+    | [<EnumMember(Value = "update-destinations")>]
+        UpdateDestinations = 12
+    
+    | [<EnumMember(Value = "area-added")>]
+        AreaAdded = 13
+    
+    | [<EnumMember(Value = "area-removed")>]
+         AreaRemoved = 14
+    
+    | [<EnumMember(Value = "area-updated")>]
+        AreaUpdated = 15
+    
+    | [<EnumMember(Value = "destination-out-sequence")>]
+        DestinationOutSequence = 16
+    
+    | [<EnumMember(Value = "driver-arrived-early")>]
+        DriverArrivedEarly = 17
+    
+    | [<EnumMember(Value = "driver-arrived-on-time")>]
+        DriverArrivedOnTime = 18
+    
+    | [<EnumMember(Value = "driver-arrived-late")>]
+        DriverArrivedLate = 19
+    
+    | [<EnumMember(Value = "geofence-entered")>]
+        GeofenceEntered = 20
+    
+    | [<EnumMember(Value = "geofence-left")>]
+        GeofenceLeft = 21
+
+    | [<EnumMember(Value = "user_message")>]
+        UserMessage = 22

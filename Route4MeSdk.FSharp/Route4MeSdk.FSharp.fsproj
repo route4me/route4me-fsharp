@@ -66,6 +66,7 @@
     <Compile Include="RestApi\Vehicle.fs" />
     <Compile Include="RestApi\Territory.fs" />
     <Compile Include="RestApi\AvoidanceZone.fs" />
+    <Compile Include="RestApi\Activity.fs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="FSharp.Data">

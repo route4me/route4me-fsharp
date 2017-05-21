@@ -17,6 +17,7 @@ module internal Url =
     module V1 =
         let private segments = host @ [ "api" ]
 
+        let activities = segments @ ["get_activities.php"]
         let viewVehicles = segments @ ["vehicles"; "view_vehicles.php"]
 
     module V3 = 
