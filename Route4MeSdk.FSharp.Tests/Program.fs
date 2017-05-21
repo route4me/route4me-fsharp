@@ -6,6 +6,7 @@ open Route4MeSdk.FSharp.Tests
 let tests =
     [ Member.tests
       Vehicle.tests 
+      Territory.tests
       ]
     |> testList "Route4MeSdk.FSharp.Tests"
 

@@ -76,6 +76,11 @@ type Vehicle = {
     WeightLb: string }
 
     with
-        static member Get(?apiKey) =
-            Api.Get(Url.V1.viewVehicles, [], [], apiKey)
+        static member Get(?take:int, ?skip:int, ?apiKey) =
+            let query = 
+                [ take |> Option.map(fun v -> "limit", v.ToString())
+                  skip |> Option.map(fun v -> "offset", v.ToString()) ]
+                |> List.choose id
+
+            Api.Post(Url.V1.viewVehicles, [], query, apiKey)
             |> Result.map Api.Deserialize<Vehicle[]>

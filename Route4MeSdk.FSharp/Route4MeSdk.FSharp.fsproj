@@ -64,6 +64,7 @@
     <Compile Include="RestApi\MemberConfig.fs" />
     <Compile Include="RestApi\Member.fs" />
     <Compile Include="RestApi\Vehicle.fs" />
+    <Compile Include="RestApi\Territory.fs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="FSharp.Data">

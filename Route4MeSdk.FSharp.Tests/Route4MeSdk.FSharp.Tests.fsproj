@@ -64,6 +64,7 @@
     <Compile Include="Data\Password.fs" />
     <Compile Include="Member.fs" />
     <Compile Include="Vehicle.fs" />
+    <Compile Include="Territory.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
   <ItemGroup>

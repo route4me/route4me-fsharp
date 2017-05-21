@@ -136,7 +136,7 @@ type Member = {
             |> Result.andThen(fun id ->
                 let query = [("member_id", id.ToString())]
             
-                Api.Get(Url.V4.configSettings, [], [], apiKey)
+                Api.Get(Url.V4.configSettings, [], query, apiKey)
                 |> Result.map(fun json -> 
                     let dict = Api.Deserialize<Dictionary<string,obj>>(json)
                     let data = dict.["data"] :?> JArray
@@ -155,7 +155,7 @@ type Member = {
             let query = 
                 [("strFirstName", firstName)
                  ("strLastName", lastName)
-                 ("strEmail",email)
+                 ("strEmail", email)
                  ("format", "json")
                  ("chkTerms", "1")
                  ("device_type", deviceType.ToString())
