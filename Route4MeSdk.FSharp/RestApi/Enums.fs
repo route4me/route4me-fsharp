@@ -3,6 +3,24 @@
 open Newtonsoft.Json
 open Newtonsoft.Json.Converters
 open System.Runtime.Serialization
+open System.Runtime.CompilerServices
+
+[<Extension>]
+type EnumExtension () =
+    [<Extension>]
+    static member GetStringValue<'T
+            when 'T :> System.Enum 
+             and 'T : struct > (value:'T) = 
+            
+        let t = typeof<'T>
+        t.GetMember(value.ToString())
+        |> Array.tryHead
+        |> Option.bind(fun m ->
+            m.GetCustomAttributes(typeof<EnumMemberAttribute>, false)
+            |> Array.tryHead
+            |> Option.map (fun attr -> attr :?> EnumMemberAttribute))
+        |> Option.map(fun attr -> attr.Value)
+        |> Option.defaultWith(fun _ -> (sprintf "%A" value))     
 
 [<JsonConverter(typeof<StringEnumConverter>)>]
 type DistanceUnit =
@@ -41,6 +59,7 @@ type MemberType =
     | [<EnumMember(Value = "SUB_ACCOUNT_CUSTOMER_SERVICE")>]
         SubAccountCustomerService = 8
 
+[<JsonConverter(typeof<StringEnumConverter>)>]
 type DeviceType =
     | [<EnumMember(Value = "Web")>]
         Web = 0
@@ -60,6 +79,7 @@ type DeviceType =
     | [<EnumMember(Value = "UnknownDevice")>]
         UnknownDevice = 99
 
+[<JsonConverter(typeof<StringEnumConverter>)>]
 type ActivityType = 
     | [<EnumMember(Value = "delete-destination")>]
         DeleteDestination = 0

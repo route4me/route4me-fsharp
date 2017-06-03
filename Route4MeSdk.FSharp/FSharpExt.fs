@@ -39,6 +39,9 @@ module Option =
         if success then Some value
         else None
 
+    let inline ofString(value:string) = 
+        ofPair(String.IsNullOrEmpty(value), value)
+
 [<AutoOpen>]
 module OptionPervasive = 
     type OptionBuilder() =

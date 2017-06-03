@@ -41,7 +41,7 @@ type Activity = {
     Id : string 
     
     [<JsonProperty("activity_type")>]
-    Type : string //ActivityType 
+    Type : ActivityType 
     
     [<JsonProperty("activity_timestamp")>]
     Timestamp : uint64
@@ -68,12 +68,17 @@ type Activity = {
     NoteFile : string
 
     [<JsonProperty("member")>]
-    Member : Member
-    }
+    Member : Member }
 
     with
-        static member Get(?apiKey) =
-            let query = []
+        static member Get(?routeId, ?deviceId, ?activityType:ActivityType, ?memberId, ?apiKey) =
+            let query = 
+                [ routeId |> Option.bind Option.ofString |> Option.map(fun value -> "route_id", value)
+                  deviceId |> Option.bind Option.ofString |> Option.map(fun value -> "device_id", value) 
+                  memberId |> Option.bind Option.ofString |> Option.map(fun value -> "member_id", value) 
+                  activityType |> Option.map(fun value -> "activity_type", value.GetStringValue())
+                ]
+                |> List.choose id
             
             Api.Get(Url.V4.activityFeed, [], query, apiKey)
             |> Result.map(fun json -> 
@@ -81,3 +86,16 @@ type Activity = {
                 let results = dict.["results"] :?> JArray
                 let itemsJson = results.ToString()
                 Api.Deserialize<Activity[]>(results.ToString()))
+
+        static member LogMessage(routeId, message, ?apiKey) = 
+            let body = 
+                [ "route_id", routeId
+                  "activity_message", message
+                  "activity_type", ActivityType.UserMessage.GetStringValue()
+                ]
+                |> dict
+            
+            Api.Post(Url.V4.activityFeed, [], [], apiKey, body)
+            |> Result.map(fun json ->
+                let dict = Api.Deserialize<Dictionary<string,obj>>(json)
+                dict.["status"] :?> bool)
